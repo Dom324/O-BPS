@@ -1,0 +1,145 @@
+predictor:
+  name: batage
+  version: 1.0
+  CBP_ver: 2.0
+
+# Check file batage.h for explanation of parameters
+parameters:
+  NUMG:         # number of tagged banks (also, number of non-null global history lengths)
+    type: 'int'
+    min: 2
+    max: 64
+    val: 26
+  MAXHIST:         # greatest global history length
+    type: 'int'
+    min: 2
+    max: 1024
+    val: 700
+  MINHIST:         # smallest non-null global history length
+    type: 'int'
+    min: 2
+    max: 1024
+    val: 4
+  MAXPATH:         # path history length
+    type: 'int'
+    min: 2
+    max: 64
+    val: 30
+  PATHBITS:         # number of target bits pushed into the path history per branch
+    type: 'int'
+    min: 2
+    max: 64
+    val: 6
+
+  LOGB:         # log2 of the number of bimodal prediction bits
+    type: 'int'
+    min: 2
+    max: 64
+    val: 12
+  LOGB2:         # log2 of the number of bimodal hysteresis entries
+    type: 'int'
+    min: 2
+    max: 64
+    val: 10
+  LOGG:         # log2 of the number of entries in one tagged bank
+    type: 'int'
+    min: 2
+    max: 64
+    val: 7
+  TAGBITS:         # tag size
+    type: 'int'
+    min: 2
+    max: 64
+    val: 12
+  BHYSTBITS:         # number of bimodal hysteresis bits
+    type: 'int'
+    min: 2
+    max: 64
+    val: 2
+
+  # SKIPMAX: maximum number of banks skipped on allocation
+  # if you change NUMG, you must re-tune SKIPMAX
+  SKIPMAX:
+    type: 'int'
+    min: 2
+    max: 64
+    val: 2
+
+  # meta predictor, for a small accuracy boost (not in the BATAGE paper)
+  # inspired from the meta predictor in TAGE, but used differently
+  USE_META:
+    type: 'bool'
+    val: True
+
+  # controlled allocation throttling (CAT)
+  # CATR = CATR_NUM / CATR_DEN
+  # CATR, CATMAX and MINAP must be re-tuned if you change NUMG or LOGG
+  # for NUMG<~20, a smaller NUMG needs a smaller CATR
+  # a larger predictor may need a larger CATMAX
+  CATR_NUM:
+    type: 'int'
+    min: 1
+    max: 64
+    val: 2
+  CATR_DEN:
+    type: 'int'
+    min: 1
+    max: 64
+    val: 3
+  #  CATMAX:
+  #    type: 'int'
+  #    min: 2
+  #    max: 64
+  #    val: ((CATR_NUM<<15)-1)
+  MINAP:
+    type: 'int'
+    min: 2
+    max: 64
+    val: 16
+
+  # controlled decay, for a tiny accuracy boost (not in the BATAGE paper)
+  # CDR = CDR_NUM / CDR_DEN
+  # CDR must be greater than CATR
+  # CDR, CDMAX and MINDP must be re-tuned if you change NUMG or LOGG
+  # in particular, if you decrease CATR, you should probably decrease CDR too
+  USE_CD:
+    type: 'bool'
+    val: True
+  CDR_NUM:
+    type: 'int'
+    min: 2
+    max: 64
+    val: 6
+  CDR_DEN:
+    type: 'int'
+    min: 2
+    max: 64
+    val: 5
+  #  CDMAX:
+  #    type: 'int'
+  #    min: 2
+  #    max: 64
+  #    val: 16
+  MINDP:
+    type: 'int'
+    min: 2
+    max: 64
+    val: 7
+
+  # bank interleaving, inspired from Seznec's TAGE-SC-L (CBP 2016)
+  BANK_INTERLEAVING:
+    type: 'bool'
+    val: True
+  # taking MIDBANK=(NUMG-1)*0.4 is probably close to optimal
+  # take GHGBITS=1 for NUMG<~10
+  MIDBANK:
+    type: 'int'
+    min: 2
+    max: 64
+    val: 10
+  GHGBITS:
+    type: 'int'
+    min: 1
+    max: 64
+    val: 2
+

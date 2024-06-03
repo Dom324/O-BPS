@@ -1,0 +1,13 @@
+# Batage
+Source files taken from: https://team.inria.fr/pacap/members/pierre-michaud/ . Modified to work with the updated CBP2016 framework.
+All right reserved to Pierre Michaud.
+
+Files batage.h and batage.cc implement an 8KB BATAGE predictor tuned for the CBP 2016 traces.
+
+See P. Michaud, "An alternative TAGE-like conditional branch predictor", ACM Transactions on Architecture and Code Optimization, 2018.
+
+Explicit BATAGE parameters are hard-coded in batage.h
+If you want a different predictor size, you must modify batage.h
+
+Files predictor.h and predictor.cc are for the CBP 2016 simulator (https://www.jilp.org/cbp2016/).
+

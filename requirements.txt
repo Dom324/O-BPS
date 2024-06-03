@@ -1,0 +1,8 @@
+tabulate
+click
+cloup
+GitPython
+pyyaml
+google-vizier[jax]
+pandas
+matplotlib

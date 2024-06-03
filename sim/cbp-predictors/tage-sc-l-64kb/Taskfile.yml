@@ -1,0 +1,28 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  BUILD_FOLDER: '{{.ROOT_DIR}}/build'
+
+tasks:
+  default:
+    cmds:
+      - task: compile_predictor
+
+  compile_predictor:
+    vars:
+      CPPFLAGS: -std=c++23 -fPIC {{.OPT_FLAGS}} {{.JASON_TURNER_WARNINGS}} {{.MY_WARNINGS}} {{.REMOVE_LATER}} -isystem{{.CEREAL}}/include -isystem{{.XXHASH}}/include
+    sources:
+      - 'src/**/*.h'
+      - 'src/**/*.cc'
+      - 'Taskfile.yml'
+      - '{{.ROOT_DIR}}/Taskfile.yml'
+      - '{{.BUILD_FOLDER}}/parameters.h'
+      - '{{.BUILD_FOLDER}}/statistics.h'
+    # Header only, no compilation needed
+    #    generates:
+    #      - '{{.BUILD_FOLDER}}/predictor.o'
+    #    cmds:
+    #      - '{{.CXX}} {{.CPPFLAGS}} -c -o {{.BUILD_FOLDER}}/predictor.o src/predictor.cc'
+

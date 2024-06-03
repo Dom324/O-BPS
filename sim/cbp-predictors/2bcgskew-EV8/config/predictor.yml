@@ -1,0 +1,49 @@
+predictor:
+  name: 2bc-gskew-EV8
+  version: 1.0
+  CBP_ver: 2.0
+
+# The following parameter list is not exhaustive,
+# it's just an example taken from the predictor code
+parameters:
+  LOGPRED:      # LOGPRED is the predictor size, size = 2 ** LOGPRED
+    type: 'int'
+    min: 10
+    max: 22
+    val: 18
+  G0G1_SIZE:      # Size of the G0G1 array is LOGPRED - G0G1_SIZE
+    type: 'int'
+    min: 0
+    max: 8
+    val: 1
+  BIM_META_SIZE:  # Size of the G0G1 array is LOGPRED - G0G1_SIZE
+    type: 'int'
+    min: 0
+    max: 8
+    val: 2
+  HYST_SIZE:      # Size of the G0G1 array is LOGPRED - G0G1_SIZE
+    type: 'int'
+    min: 0
+    max: 8
+    val: 2
+  L_BIM:
+    type: 'int'
+    min: 0
+    max: 64
+    val: 10
+  L_G0:
+    type: 'int'
+    min: 0
+    max: 64
+    val: 24
+  L_G1:
+    type: 'int'
+    min: 0
+    max: 64
+    val: 64
+  L_META:
+    type: 'int'
+    min: 0
+    max: 64
+    val: 14
+

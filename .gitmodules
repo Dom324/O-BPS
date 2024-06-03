@@ -1,0 +1,6 @@
+[submodule "sim/libs/cereal"]
+	path = sim/libs/cereal
+	url = git@github.com:USCiLab/cereal.git
+[submodule "sim/libs/zstd"]
+	path = sim/libs/zstd
+	url = git@github.com:facebook/zstd.git

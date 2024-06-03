@@ -1,0 +1,68 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  BUILD_FOLDER: '{{.ROOT_DIR}}/build'
+  CXX: clang++
+  CC: clang
+  ZSTD: '{{.ROOT_DIR}}/libs/zstd'
+  CEREAL: '{{.ROOT_DIR}}/libs/cereal'
+  BOOST: /usr
+  LDFLAGS: -L{{.BOOST}}/lib -Wl,-rpath {{.BOOST}}/lib -L{{.ZSTD}}/lib -Wl,--gc-sections
+  LDLIBS: -Wl,-Bstatic -lboost_iostreams -l:libzstd.a -Wl,-Bdynamic
+  OPT_FLAGS: -O3 -flto=auto -march=znver1 -mtune=znver1 -g3 #-g3 -fsanitize=undefined,address,leak,integer #-analyzer
+  JASON_TURNER_WARNINGS: -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic -Wold-style-cast -Wcast-align -Woverloaded-virtual -Wconversion -Wsign-conversion -Wmisleading-indentation -Wunused -Wpedantic -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough {{if eq .CXX "clang++"}} -Wlifetime {{end}} {{if eq .CXX "g++"}} -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast {{end}}
+  MY_WARNINGS: -Winline -Wuninitialized -Wcast-qual {{if eq .CXX "g++"}} -Wmaybe-uninitialized {{end}}
+  REMOVE_LATER: -Wno-unused-parameter -Wno-unused-variable -Wno-conversion -Wno-sign-conversion -Wno-old-style-cast
+  CPPFLAGS: -std=c++23 -fPIC {{.OPT_FLAGS}} {{.JASON_TURNER_WARNINGS}} {{.MY_WARNINGS}} {{.REMOVE_LATER}} -isystem{{.ZSTD}}/lib -isystem{{.CEREAL}}/include -I/usr/include -isystem/user/include/boost/ -isystem/usr/include/boost/iostreams/ -I/usr/include/boost/iostreams/device/ -isystem{{.XXHASH}}/include
+
+# PREDICTOR_FOLDER is passed on cli
+includes:
+  predictor:
+    taskfile: '{{.PREDICTOR_FOLDER}}/Taskfile.yml'
+    dir: '{{.PREDICTOR_FOLDER}}'
+
+tasks:
+  default:
+    cmds:
+      - task: predictor
+
+  predictor:
+    deps: [zstd, predictor:compile_predictor]
+    dir: 'build'
+    sources:
+      - paths.h
+      - parameters.h
+      - './*.o'
+      - '{{.ZSTD}}/lib/libzstd.a'
+      - '../Taskfile.yml'
+    generates:
+      - predictor
+    cmds:
+      - task: compile_main
+      - '{{.CXX}} {{.CPPFLAGS}} {{.LDFLAGS}} -o predictor *.o {{.LDLIBS}}'
+
+  zstd:
+    sources:
+      - '{{.ZSTD}}/**/*.h'
+      - '{{.ZSTD}}/**/*.c'
+    generates:
+      - '{{.ZSTD}}/lib/libzstd.a'
+    cmds:
+      - make -C {{.ZSTD}}/lib ZSTD_LIB_COMPRESSION=0 ZSTD_LIB_DICTBUILDER=0 ZSTD_LIB_DEPRECATED=0 ZSTD_LEGACY_SUPPORT=0 ZSTD_NO_UNUSED_FUNCTIONS=1 CC={{.CC}} CFLAGS="{{.OPT_FLAGS}}"
+
+  compile_main:
+    dir: 'src'
+    sources:
+      - './*.cc'
+      - './*.h'
+      - '../build/statistics.h'
+      - '../build/paths.h'
+      - '{{.PREDICTOR_FOLDER}}/src/predictor.h'
+      - '../Taskfile.yml'
+    generates:
+      - '../build/main.o'
+    cmds:
+      - cmd: '{{.CXX}} {{.CPPFLAGS}} -c -o ../build/main.o main.cc'
+

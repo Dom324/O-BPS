@@ -1,0 +1,23 @@
+predictor:
+  name: tage-sc-l-64kb
+  version: 1.0
+  CBP_ver: 2.0
+
+# The following parameter list is not exhaustive,
+# it's just an example taken from the predictor code
+parameters:
+  BORNTICK:
+    type: 'int'
+    min: 128
+    max: 2048
+    val: 1024
+  SC:
+    type: 'bool'
+    val: True
+  IMLI:
+    type: 'bool'
+    val: True
+  LOCALH:
+    type: 'bool'
+    val: True
+
