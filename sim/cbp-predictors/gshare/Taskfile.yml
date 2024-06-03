@@ -12,7 +12,7 @@ tasks:
 
   compile_predictor:
     vars:
-      CPPFLAGS: -std=c++23 -fPIC {{.OPT_FLAGS}} {{.JASON_TURNER_WARNINGS}} {{.MY_WARNINGS}} {{.REMOVE_LATER}} -isystem{{.CEREAL}}/include -isystem{{.XXHASH}}/include
+      CPPFLAGS: -std=c++20 -fPIC {{.OPT_FLAGS}} {{.JASON_TURNER_WARNINGS}} {{.MY_WARNINGS}} {{.REMOVE_LATER}} -isystem{{.CEREAL}}/include -isystem{{.XXHASH}}/include
     sources:
       - 'src/**/*.h'
       - 'src/**/*.cc'

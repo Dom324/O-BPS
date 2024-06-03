@@ -15,7 +15,7 @@ vars:
   JASON_TURNER_WARNINGS: -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic -Wold-style-cast -Wcast-align -Woverloaded-virtual -Wconversion -Wsign-conversion -Wmisleading-indentation -Wunused -Wpedantic -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough {{if eq .CXX "clang++"}} -Wlifetime {{end}} {{if eq .CXX "g++"}} -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wuseless-cast {{end}}
   MY_WARNINGS: -Winline -Wuninitialized -Wcast-qual {{if eq .CXX "g++"}} -Wmaybe-uninitialized {{end}}
   REMOVE_LATER: -Wno-unused-parameter -Wno-unused-variable -Wno-conversion -Wno-sign-conversion -Wno-old-style-cast
-  CPPFLAGS: -std=c++23 -fPIC {{.OPT_FLAGS}} {{.JASON_TURNER_WARNINGS}} {{.MY_WARNINGS}} {{.REMOVE_LATER}} -isystem{{.ZSTD}}/lib -isystem{{.CEREAL}}/include -I/usr/include -isystem/user/include/boost/ -isystem/usr/include/boost/iostreams/ -I/usr/include/boost/iostreams/device/ -isystem{{.XXHASH}}/include
+  CPPFLAGS: -std=c++20 -fPIC {{.OPT_FLAGS}} {{.JASON_TURNER_WARNINGS}} {{.MY_WARNINGS}} {{.REMOVE_LATER}} -isystem{{.ZSTD}}/lib -isystem{{.CEREAL}}/include -I/usr/include -isystem/user/include/boost/ -isystem/usr/include/boost/iostreams/ -I/usr/include/boost/iostreams/device/ -isystem{{.XXHASH}}/include
 
 # PREDICTOR_FOLDER is passed on cli
 includes:
