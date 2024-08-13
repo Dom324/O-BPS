@@ -1,13 +1,13 @@
 # O-BPS - Open Branch Predictor Simulation framework
 O-
 Improvements compared to CBP2016:
-1. The simulation speed has been greatly increased. For simple predictors such as Gshare or Bimodal, the simulation time went down from ~30 minutes down to ~1 minute.
+1. The simulation speed has been greatly improved. For simple predictors such as Gshare or Bimodal, the simulation time went down from ~30 minutes down to ~1 minute when using a 6 core CPU.
 2. The predictors now have a configuration file `predictor.yml` which describes the parameters avalaible in predictor.
 3. The framework supports AI optimization of predictor parameters with [Google Vizier](https://github.com/google/vizier)
 
 # Usage
 
-# Usage
+# License
 
 # Installation
 Unfortunately the installation is a bit rough currently with several dependencies. If you experience difficulties, please don't hesitate and create a ticket :)
