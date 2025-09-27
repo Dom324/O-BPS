@@ -17,10 +17,6 @@
 #include "bt9.h"
 
 #include <coroutine>
-#include <zstd.h>
-#include "../libs/zstd/lib/common/zstd_internal.h"
-#include "../libs/zstd/examples/common.h"    // Helper functions, CHECK(), and CHECK_ZSTD()
-#include "decompress.h"
 
 namespace bt9 {
 
@@ -221,15 +217,7 @@ namespace bt9 {
             edge_table(this),
             tracefile_name_(name),
 
-            buffInSize(ZSTD_DStreamInSize()),
-            buffIn(malloc_orDie(buffInSize)),
-
-            buffOutSize(ZSTD_DStreamOutSize()),  /* Guarantee to successfully flush at least one complete compressed block in all circumstances. */
-            buffOut(malloc_orDie(buffOutSize)),
-
-            decompress_coroutine(zstd_decompress(tracefile_name_.c_str(), buffInSize, buffIn, buffOutSize, buffOut).h_),
-
-            fpstream_(my_source(buffOutSize, buffOut, this)),
+            fpstream_(openBT9TraceFile_(tracefile_name_), boost::iostreams::close_handle),
 
             pinfile_(&fpstream_)
         {
@@ -246,8 +234,8 @@ namespace bt9 {
 
         ~BT9Reader()
         {
-            free(buffIn);
-            free(buffOut);
+            // free(buffIn);
+            // free(buffOut);
         }
 
         class NodeTableIterator;
@@ -826,71 +814,24 @@ namespace bt9 {
 
     public:
 
-        int call_coroutine(){
-            decompress_coroutine();
+        int openBT9TraceFile_(const std::string & name) {
+            std::string cmd = "/bin/cat " + name;
 
-            auto &promise = decompress_coroutine.promise();
-            return promise.return_value_;
-        }
-
-        class my_source : public boost::iostreams::source {
-
-            public:
-
-            my_source(size_t buffOutSize, void* buffOut, bt9::BT9Reader* myClass) : pos_(0), eof_(0) {
-                bufferSize = buffOutSize;
-                buffer = buffOut;
-                reader = myClass;
-            };
-
-            std::streamsize read(char* s, std::streamsize n){
-
-                size_t outputted = 0;
-
-                while(outputted < n){
-
-                    //printf("n: %ld outputted: %ld pos: %ld buffer size: %ld\n", n, outputted, pos_, bufferSize);
-
-                    if(eof_ & (pos_ == bufferSize)){
-                        return -1;
-                    }
-
-                    // There is some remainder in the buffer
-                    if(pos_ < bufferSize){
-                        size_t bytes_to_copy = std::min(n - outputted, bufferSize - pos_);
-                        //printf("bytes to copy: %ld\n", bytes_to_copy);
-
-                        memcpy(s, (char*)buffer + pos_, bytes_to_copy);
-                        outputted += bytes_to_copy;
-                        pos_ += bytes_to_copy;
-                    } else{
-                        eof_ = 0 == reader->call_coroutine();
-                        pos_ = 0;
-                    }
-
-                }
-
-                return n;
-
-                /*STUB -  amt = static_cast<streamsize>(container_.size() - pos_);
-
-                if (result != 0) {
-                    std::copy( container_.begin() + pos_, container_.begin() + pos_ + result, s);
-                    pos_ += result;
-                    return result;
-                } else {
-                    free(buffIn);
-                    free(buffOut);
-                    return -1; // EOF
-                }*/
+            auto gzip_suffix_pos = name.find(".zst");
+            if (gzip_suffix_pos != std::string::npos) {
+                cmd = "zstd -dc " + name;
             }
 
-            size_t   pos_;
-            size_t   eof_;
-            size_t bufferSize;
-            void* buffer;
-            bt9::BT9Reader* reader;
-        };
+            FILE * pipe = popen(cmd.c_str(), "r");
+
+            if (!pipe) {
+                std::cerr << "Failed to open trace file \'"
+                          << name << "\' with pipe\n";
+                exit(-1);
+            }
+
+            return fileno(pipe);
+        }
 
         /// Read BT9 tracefile header with linux pipe
         void readBT9Header_()
@@ -1480,27 +1421,47 @@ namespace bt9 {
                 uint32_t bytes_left = initiliazed ? (BT10_PARSER_BUFFER_SIZE - ptr) : 0;
 
                 if(bytes_left < 5){
+                    // printf("DEBUG-CPP: Refill buffer, bytes left: %d\n", bytes_left);
+
+                    uint8_t* p = data + ptr;
+                    // printf("DEBUG-CPP: DATA BEFORE -> Raw=0x%02x 0x%02x 0x%02x 0x%02x\n",
+                        // p[0], p[1], p[2], p[3]);
+
                     memcpy(data, &data[ptr], bytes_left);
+
                     pinfile_.read((char*)(data + bytes_left), BT10_PARSER_BUFFER_SIZE - bytes_left);
                     ptr = 0;
                     initiliazed = 1;
+
+                    uint8_t* p2 = data + ptr;
+                    // printf("DEBUG-CPP: DATA AFTER -> Raw=0x%02x 0x%02x 0x%02x 0x%02x\n",
+                        // p2[0], p2[1], p2[2], p2[3]);
                 }
 
                 uint32_t new_edge = data[ptr];
+                // printf("DEBUG-CPP: Read 1 byte -> Raw=0x%02x\n", (uint8_t)data[ptr]);
                 ptr++;
 
                 if(new_edge == 255){
+                    // printf("DEBUG-CPP: It's an escape byte!\n");
+                    uint8_t* p = data + ptr;
+
                     memcpy(&new_edge, (data + ptr), 4);
                     ptr += 4;
 
+                    // printf("DEBUG-CPP: Read 4 bytes -> Raw=0x%02x 0x%02x 0x%02x 0x%02x -> Interpreted as ID=%u\n",
+                        // p[0], p[1], p[2], p[3], new_edge);
+
                     // EOF
                     if(new_edge == 0){
+                        // printf("DEBUG-CPP: EOF detected.\n");
                         reach_eof_ = true;
                         return;
                     }
 
                 }
 
+                // printf("DEBUG-CPP: Final Edge ID -> %u\n\n", new_edge);
                 const int is_buffer_full = appendToBuffer(new_edge);
                 if(is_buffer_full) { return; }
             }
@@ -1546,7 +1507,7 @@ namespace bt9 {
             }
 
 #ifdef DEBUG_PRINTS
-            printf("Line: %d edge_id: %d\n", line_num_, edge_id);
+            printf("edge_id: %d\n", line_num_, edge_id);
 #endif
 
             buffer_[buffer_write_ptr_] = edge_id;
@@ -1649,15 +1610,6 @@ namespace bt9 {
         /// BT9 trace file name
         std::string tracefile_name_;
 
-        size_t buffInSize;
-        void* buffIn;
-
-        size_t buffOutSize;
-        void* buffOut;
-
-        // Zstd decompress coroutine
-        std::coroutine_handle<ReturnObject::promise_type> decompress_coroutine;
-
         /// BT9 edge sequence list starting position line number
         uint64_t start_line_num_ = 0;
 
@@ -1683,7 +1635,7 @@ namespace bt9 {
         bool reach_eof_ = false;
 
         /// Boost iostreams stream buffer that could be constructed from a file descriptor
-        boost::iostreams::stream_buffer<bt9::BT9Reader::my_source> fpstream_;
+        boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source> fpstream_;
 
         /// BT9 reader istream handle
         std::istream pinfile_;
