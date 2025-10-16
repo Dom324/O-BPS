@@ -13,6 +13,7 @@
 
 #include <cereal/archives/json.hpp>
 #include <cereal/types/array.hpp>
+#include <cereal/types/unordered_map.hpp>
 
 // This parameters are now controlled by the framework
 //#define BORNTICK  1024
@@ -45,6 +46,7 @@ struct stats_t {
 
 #ifdef USER_STATS
     // Users can define their own stats here
+    std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> size_map;
 #endif
 
     template<class Archive>
@@ -66,7 +68,7 @@ struct stats_t {
             CEREAL_NVP(TRACE),
 
 #ifdef USER_STATS
-    // Users can define their own stats here
+            CEREAL_NVP(size_map),
 #endif
 
             CEREAL_NVP(NUM_INSTRUCTIONS),
@@ -84,7 +86,7 @@ stats_t stats;
 #define UINT64 uint64_t
 
 //To get the predictor storage budget on stderr  uncomment the next line
-//#define PRINTSIZE
+// #define PRINTSIZE
 #include <vector>
 long long IMLIcount;		// use to monitor the iteration number
 
@@ -437,23 +439,53 @@ predictorsize ()
   int inter = 0;
 
 
-  STORAGESIZE +=
-    NBANKHIGH * (1 << (logg[BORN])) * (CWIDTH + UWIDTH + TB[BORN]);
-  STORAGESIZE += NBANKLOW * (1 << (logg[1])) * (CWIDTH + UWIDTH + TB[1]);
+    for (uint32_t i = 0; i < NBANKLOW ; i++) {
+        uint32_t storage = (1 << (logg[1])) * (CWIDTH + UWIDTH + TB[1]);
+        STORAGESIZE += storage;
 
-  STORAGESIZE += (SIZEUSEALT) * ALTWIDTH;
-  STORAGESIZE += (1 << LOGB) + (1 << (LOGB - HYSTSHIFT));
-  STORAGESIZE += m[NHIST];
-  STORAGESIZE += PHISTWIDTH;
-  STORAGESIZE += 10;		//the TICK counter
+        stats.size_map["tage"]["table_" + std::to_string(i + 1)] = storage;
+    }
 
+    for (uint32_t i = 0; i < NBANKHIGH; i++) {
+        uint32_t storage = (1 << (logg[BORN])) * (CWIDTH + UWIDTH + TB[BORN]);
+        STORAGESIZE += storage;
+
+        stats.size_map["tage"]["table_" + std::to_string(NBANKLOW + i + 1)] = storage;
+    }
+
+    uint32_t use_alt_ctr_storage = (SIZEUSEALT) * ALTWIDTH;
+    STORAGESIZE += use_alt_ctr_storage;
+    stats.size_map["tage"]["use_alt_ctr"] = use_alt_ctr_storage;
+
+    uint32_t bimodal_storage = (1 << LOGB) + (1 << (LOGB - HYSTSHIFT));
+    STORAGESIZE += bimodal_storage;
+    stats.size_map["tage"]["bimodal"] = bimodal_storage;
+
+    uint32_t history_storage = m[NHIST];
+    STORAGESIZE += history_storage;
+    stats.size_map["tage"]["history_bits"] = history_storage;
+
+    uint32_t path_storage = PHISTWIDTH;
+    STORAGESIZE += path_storage;
+    stats.size_map["tage"]["path_history_bits"] = path_storage;
+
+    uint32_t tick_ctr_storage = 10;		//the TICK counter
+    STORAGESIZE += tick_ctr_storage;
+    stats.size_map["tage"]["tick_counter"] = tick_ctr_storage;
+
+#ifdef PRINTSIZE
   fprintf (stderr, " (TAGE %d) ", STORAGESIZE);
+#endif
 #ifdef SC
 #ifdef LOOPPREDICTOR
 
   inter = (1 << LOGL) * (2 * WIDTHNBITERLOOP + LOOPTAG + 4 + 4 + 1);
+#ifdef PRINTSIZE
   fprintf (stderr, " (LOOP %d) ", inter);
+#endif
   STORAGESIZE += inter;
+
+    stats.size_map["loop_predictor"]["tmp"] = inter;
 
 #endif
 
@@ -517,7 +549,11 @@ predictorsize ()
   STORAGESIZE += inter;
 
 
+    stats.size_map["statistical_corrector"]["tmp"] = inter;
+
+#ifdef PRINTSIZE
   fprintf (stderr, " (SC %d) ", inter);
+#endif
 #endif
 #ifdef PRINTSIZE
   fprintf (stderr, " (TOTAL %d bits %d Kbits) ", STORAGESIZE,
@@ -546,9 +582,7 @@ public:
   {
 
     reinit ();
-#ifdef PRINTSIZE
     predictorsize ();
-#endif
   }
 
 
