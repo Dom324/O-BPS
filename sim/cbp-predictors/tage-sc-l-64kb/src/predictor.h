@@ -12,7 +12,7 @@
 #include "../../../build/statistics.h"
 
 #include <cereal/archives/json.hpp>
-#include <cereal/types/array.hpp>
+#include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_map.hpp>
 
 // This parameters are now controlled by the framework
@@ -45,7 +45,11 @@ struct stats_t {
     std::string TRACE;
 
 #ifdef USER_STATS
-    // Users can define their own stats here
+    static constexpr uint32_t period = 10000;
+    uint32_t period_number = 0;
+    uint32_t period_tick = 0;
+    std::vector<float> MPKBr_periodic = {0.0};
+
     std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> size_map;
 #endif
 
@@ -69,6 +73,7 @@ struct stats_t {
 
 #ifdef USER_STATS
             CEREAL_NVP(size_map),
+            CEREAL_NVP(MPKBr_periodic),
 #endif
 
             CEREAL_NVP(NUM_INSTRUCTIONS),
@@ -1289,6 +1294,16 @@ int T = (PC ^ (phist & ((1 << m[BORN]) - 1))) % NBANKHIGH;
 			bool predDir, UINT64 branchTarget)
   {
 
+    // BUG: Last iteration is inexact!
+    uint32_t mispred = resolveDir != predDir;
+    stats.MPKBr_periodic[stats.period_number] += 1000.0*(double)(mispred)/(double)(stats.period);
+
+    stats.period_tick++;
+    if (stats.period_tick == stats.period) {
+        stats.period_tick = 0;
+        stats.period_number++;
+        stats.MPKBr_periodic.push_back(0.0);
+    }
 
 
 #ifdef SC
